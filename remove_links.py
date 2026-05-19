@@ -62,6 +62,7 @@ _TESSDATA_CANDIDATES = [
     r"C:\Program Files\Tesseract-OCR\tessdata",
     r"C:\Program Files (x86)\Tesseract-OCR\tessdata",
     _os.path.expanduser(r"~\AppData\Local\Programs\Tesseract-OCR\tessdata"),
+    r"/usr/share/tesseract-ocr/5/tessdata",   # Ubuntu 22+ / Render Docker
     r"/usr/share/tesseract-ocr/4.00/tessdata",
     r"/usr/share/tessdata",
     r"/opt/homebrew/share/tessdata",
