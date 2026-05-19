@@ -1,0 +1,8 @@
+[phases.setup]
+nixPkgs = ["tesseract", "tesseract-data-eng"]
+
+[phases.install]
+cmds = ["pip install -r requirements.txt"]
+
+[start]
+cmd = "gunicorn app:app --timeout 120 --workers 2 --bind 0.0.0.0:$PORT"
