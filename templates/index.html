@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>PDF Link Remover by Sanjay</title>
+  <style>
+    :root{
+      --bg:#F8FAFC; --card:#fff; --border:#E2E8F0;
+      --blue:#2563EB; --blue-dk:#1D4ED8; --blue-lt:#DBEAFE;
+      --text:#1E293B; --muted:#64748B;
+      --ok:#16A34A; --warn:#D97706; --err:#DC2626;
+      --log:#0F172A; --r:12px;
+      --sh:0 1px 3px rgba(0,0,0,.10),0 1px 2px rgba(0,0,0,.06);
+    }
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;
+         background:var(--bg);color:var(--text);min-height:100vh;display:flex;flex-direction:column}
+
+    header{background:var(--blue);padding:18px 28px;display:flex;align-items:center;gap:14px}
+    .hdr-ico{width:44px;height:44px;background:rgba(255,255,255,.18);border-radius:10px;
+             display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0}
+    header h1{color:#fff;font-size:20px;font-weight:700}
+    header p{color:#BFDBFE;font-size:13px;margin-top:2px}
+
+    main{flex:1;max-width:680px;width:100%;margin:32px auto;padding:0 16px;
+         display:flex;flex-direction:column;gap:20px}
+
+    .card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);
+          padding:22px 24px;box-shadow:var(--sh)}
+    .clabel{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;
+            letter-spacing:.07em;margin-bottom:14px}
+
+    /* Drop zone */
+    .dz{position:relative;border:2px dashed var(--border);border-radius:10px;
+        padding:36px 20px;text-align:center;cursor:pointer;
+        transition:border-color .2s,background .2s;background:var(--bg)}
+    .dz:hover,.dz.over{border-color:var(--blue);background:var(--blue-lt)}
+    .dz input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+    .dz-ico{font-size:40px;margin-bottom:10px}
+    .dz h3{font-size:16px;font-weight:600;margin-bottom:5px}
+    .dz p{font-size:13px;color:var(--muted)}
+    .dz-link{color:var(--blue);text-decoration:underline}
+
+    /* File chip */
+    .fchip{display:none;align-items:center;gap:12px;padding:12px 16px;
+           background:var(--blue-lt);border:1px solid #BFDBFE;border-radius:8px;margin-top:12px}
+    .fchip.show{display:flex}
+    .fc-name{font-weight:600;font-size:14px}
+    .fc-size{font-size:12px;color:var(--muted);margin-top:1px}
+    .fc-rm{margin-left:auto;background:none;border:none;cursor:pointer;
+           color:var(--muted);font-size:18px;padding:2px 6px;border-radius:4px}
+    .fc-rm:hover{color:var(--err);background:#FEE2E2}
+
+    /* Form */
+    .form-row{display:flex;align-items:center;gap:10px}
+    .form-lbl{font-size:14px;font-weight:500;min-width:80px}
+    .form-inp{flex:1;padding:8px 12px;border:1px solid var(--border);border-radius:8px;
+              font-size:14px;color:var(--text);background:var(--bg);outline:none;
+              font-family:inherit;transition:border-color .15s}
+    .form-inp:focus{border-color:var(--blue)}
+    .form-hint{font-size:12px;color:var(--muted);margin-top:6px}
+
+    /* Buttons */
+    .btn{padding:8px 12px;border-radius:8px;border:1px solid var(--border);background:var(--card);
+         color:var(--muted);cursor:pointer;font-size:13px;font-family:inherit;transition:all .15s}
+    .btn:hover{border-color:var(--blue);color:var(--blue)}
+    .btn-run{display:block;width:100%;padding:14px;border:none;border-radius:10px;
+             background:var(--blue);color:#fff;font-size:16px;font-weight:700;
+             font-family:inherit;cursor:pointer;transition:background .15s,transform .1s}
+    .btn-run:hover{background:var(--blue-dk)}
+    .btn-run:active{transform:scale(.99)}
+    .btn-run:disabled{background:#93C5FD;cursor:not-allowed;transform:none}
+
+    /* Upload progress */
+    .prog{display:none;margin-top:14px}
+    .prog.show{display:block}
+    .prog-track{height:8px;background:var(--border);border-radius:4px;overflow:hidden}
+    .prog-fill{height:100%;background:var(--blue);border-radius:4px;width:0%;transition:width .3s}
+    .prog-lbl{font-size:12px;color:var(--muted);text-align:center;margin-top:6px}
+
+    /* Result */
+    .result{display:none;align-items:center;gap:14px;padding:16px 20px;border-radius:10px}
+    .result.ok{display:flex;background:#DCFCE7;border:1px solid #86EFAC}
+    .result.err{display:flex;background:#FEE2E2;border:1px solid #FCA5A5}
+    .r-title{font-weight:700;font-size:15px}
+    .r-sub{font-size:13px;color:var(--muted);margin-top:3px}
+
+    /* Stats grid */
+    .stats{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-top:6px}
+    .stat{background:rgba(255,255,255,.7);border-radius:8px;padding:10px 14px;text-align:center}
+    .stat-n{font-size:22px;font-weight:700;color:var(--blue)}
+    .stat-l{font-size:11px;color:var(--muted);margin-top:2px}
+
+    .btn-dl{padding:10px 20px;border:none;border-radius:8px;background:var(--ok);color:#fff;
+            font-size:14px;font-weight:600;font-family:inherit;cursor:pointer;white-space:nowrap}
+    .btn-dl:hover{background:#15803D}
+
+    /* Log */
+    .log-area{background:var(--log);border-radius:10px;padding:14px 16px;
+              min-height:100px;overflow-y:auto;font-family:'Consolas','Courier New',monospace;
+              font-size:13px;max-height:220px}
+    .log-area::-webkit-scrollbar{width:5px}
+    .log-area::-webkit-scrollbar-thumb{background:#334155;border-radius:3px}
+    .le{display:flex;gap:8px;margin-bottom:3px;line-height:1.55}
+    .lt{color:#475569;white-space:nowrap}
+    .lm{color:#94A3B8}.lm.ok{color:#4ADE80}.lm.warn{color:#FBBF24}
+    .lm.err{color:#F87171}.lm.dim{color:#334155}
+    .log-bar{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+
+    footer{text-align:center;padding:20px;font-size:12px;color:var(--muted)}
+    @media(max-width:520px){main{margin:14px auto;gap:12px}.card{padding:14px}}
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="hdr-ico">🔗</div>
+  <div>
+    <h1>PDF Link Remover by Sanjay</h1>
+    <p>Upload a PDF — every clickable link is removed — download the clean file</p>
+  </div>
+</header>
+
+<main>
+
+  <!-- Upload -->
+  <div class="card">
+    <div class="clabel">Select PDF</div>
+    <div class="dz" id="dz">
+      <input type="file" id="fileInput" accept=".pdf"/>
+      <div class="dz-ico">📄</div>
+      <h3>Drop your PDF here</h3>
+      <p>or <span class="dz-link">click to browse</span></p>
+    </div>
+    <div class="fchip" id="fchip">
+      <span style="font-size:22px">📄</span>
+      <div><div class="fc-name" id="fcName"></div><div class="fc-size" id="fcSize"></div></div>
+      <button class="fc-rm" id="fcRm">✕</button>
+    </div>
+  </div>
+
+  <!-- Options -->
+  <div class="card">
+    <div class="clabel">Options</div>
+    <div class="form-row">
+      <label class="form-lbl" for="pwInp">Password</label>
+      <input class="form-inp" type="password" id="pwInp"
+             placeholder="Leave blank if not encrypted"/>
+      <button class="btn" onclick="togglePw(event)">Show</button>
+    </div>
+    <div class="form-hint">Only required for password-protected PDFs.</div>
+  </div>
+
+  <!-- Action -->
+  <div class="card">
+    <button class="btn-run" id="runBtn" disabled onclick="run()">Remove Links</button>
+    <div class="prog" id="prog">
+      <div class="prog-track"><div class="prog-fill" id="progFill"></div></div>
+      <div class="prog-lbl" id="progLbl">Uploading…</div>
+    </div>
+  </div>
+
+  <!-- Result -->
+  <div class="result" id="result">
+    <span style="font-size:28px" id="rIco"></span>
+    <div style="flex:1">
+      <div class="r-title" id="rTitle"></div>
+      <div class="stats" id="statsGrid" style="display:none"></div>
+    </div>
+    <button class="btn-dl" id="dlBtn" style="display:none" onclick="triggerDownload()">
+      ⬇ Download PDF
+    </button>
+  </div>
+
+  <!-- Log -->
+  <div class="card">
+    <div class="log-bar">
+      <span style="font-size:13px;font-weight:600">Log</span>
+      <button class="btn" onclick="clearLog()" style="font-size:12px;padding:3px 10px">Clear</button>
+    </div>
+    <div class="log-area" id="logArea">
+      <div class="le"><span class="lt">[--:--:--]</span>
+        <span class="lm dim">Ready. Select a PDF to begin.</span></div>
+    </div>
+  </div>
+
+</main>
+
+<footer>
+  All processing happens on the server — your file is deleted immediately after download.
+</footer>
+
+<script>
+'use strict';
+
+let _file     = null;
+let _dlUrl    = null;
+let _dlName   = '';
+
+// ── File handling ─────────────────────────────────────────────────────────────
+const dz      = document.getElementById('dz');
+const fileInp = document.getElementById('fileInput');
+const fchip   = document.getElementById('fchip');
+const runBtn  = document.getElementById('runBtn');
+
+fileInp.addEventListener('change', e => { const f = e.target.files[0]; if (f) pickFile(f); });
+dz.addEventListener('dragover',  e => { e.preventDefault(); dz.classList.add('over'); });
+dz.addEventListener('dragleave', ()  => dz.classList.remove('over'));
+dz.addEventListener('drop', e => {
+  e.preventDefault(); dz.classList.remove('over');
+  const f = e.dataTransfer.files[0];
+  if (f && f.name.toLowerCase().endsWith('.pdf')) pickFile(f);
+  else log('Please drop a PDF file.', 'warn');
+});
+document.getElementById('fcRm').onclick = clearFile;
+
+function pickFile(f) {
+  _file = f;
+  document.getElementById('fcName').textContent = f.name;
+  document.getElementById('fcSize').textContent = fmtBytes(f.size);
+  fchip.classList.add('show');
+  dz.style.display = 'none';
+  runBtn.disabled  = false;
+  resetResult();
+  log(`Selected: ${f.name} (${fmtBytes(f.size)})`);
+}
+function clearFile() {
+  _file = null; fileInp.value = '';
+  fchip.classList.remove('show'); dz.style.display = '';
+  runBtn.disabled = true; resetResult();
+}
+function fmtBytes(n) {
+  if (n < 1024) return n + ' B';
+  if (n < 1048576) return (n/1024).toFixed(1) + ' KB';
+  return (n/1048576).toFixed(2) + ' MB';
+}
+
+// ── Password ──────────────────────────────────────────────────────────────────
+function togglePw(e) {
+  const inp = document.getElementById('pwInp');
+  const btn = e.currentTarget;
+  const show = inp.type === 'password';
+  inp.type = show ? 'text' : 'password';
+  btn.textContent = show ? 'Hide' : 'Show';
+}
+
+// ── Log ───────────────────────────────────────────────────────────────────────
+function log(msg, cls) {
+  const area = document.getElementById('logArea');
+  const ts   = new Date().toTimeString().slice(0,8);
+  const d    = document.createElement('div'); d.className = 'le';
+  d.innerHTML = `<span class="lt">[${ts}]</span>`+
+                `<span class="lm ${cls||''}">${esc(msg)}</span>`;
+  area.appendChild(d); area.scrollTop = area.scrollHeight;
+}
+function clearLog() { document.getElementById('logArea').innerHTML=''; }
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// ── Progress ──────────────────────────────────────────────────────────────────
+function setProg(pct, label) {
+  document.getElementById('prog').classList.add('show');
+  document.getElementById('progFill').style.width = pct+'%';
+  document.getElementById('progLbl').textContent  = label||'';
+}
+function hideProg() { document.getElementById('prog').classList.remove('show'); }
+
+// ── Result ────────────────────────────────────────────────────────────────────
+function showResult(ok, title, stats) {
+  const el = document.getElementById('result');
+  el.className = 'result '+(ok?'ok':'err');
+  document.getElementById('rIco').textContent   = ok ? '✅' : '❌';
+  document.getElementById('rTitle').textContent = title;
+  const grid = document.getElementById('statsGrid');
+  if (stats && ok) {
+    grid.style.display = '';
+    grid.innerHTML = stats.map(([n,l]) =>
+      `<div class="stat"><div class="stat-n">${n}</div><div class="stat-l">${l}</div></div>`
+    ).join('');
+  } else {
+    grid.style.display = 'none';
+  }
+  document.getElementById('dlBtn').style.display = ok ? '' : 'none';
+}
+function resetResult() {
+  document.getElementById('result').className = 'result';
+  if (_dlUrl) { URL.revokeObjectURL(_dlUrl); _dlUrl = null; }
+}
+
+// ── Download ──────────────────────────────────────────────────────────────────
+function triggerDownload() {
+  if (!_dlUrl) return;
+  const a = Object.assign(document.createElement('a'), {href:_dlUrl, download:_dlName});
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  log(`Downloaded: ${_dlName}`, 'ok');
+}
+
+// ── Upload & process ──────────────────────────────────────────────────────────
+function run() {
+  if (!_file) return;
+  runBtn.disabled = true; runBtn.textContent = 'Processing…';
+  resetResult();
+
+  const password = document.getElementById('pwInp').value;
+  const fd = new FormData();
+  fd.append('pdf', _file);
+  if (password) fd.append('password', password);
+
+  log('─'.repeat(44), 'dim');
+  log(`Uploading: ${_file.name}`, '');
+
+  const xhr = new XMLHttpRequest();
+
+  xhr.upload.onprogress = e => {
+    if (e.lengthComputable) {
+      const pct = Math.round(e.loaded / e.total * 50); // 0–50% = upload
+      setProg(pct, `Uploading… ${fmtBytes(e.loaded)} / ${fmtBytes(e.total)}`);
+    }
+  };
+
+  xhr.onload = () => {
+    runBtn.disabled = false; runBtn.textContent = 'Remove Links';
+
+    if (xhr.status === 200) {
+      setProg(100, 'Done');
+
+      // Parse stats from headers
+      const a = parseInt(xhr.getResponseHeader('X-Removed-Annotations') || '0');
+      const b = parseInt(xhr.getResponseHeader('X-Removed-Fitz')        || '0');
+      const c = parseInt(xhr.getResponseHeader('X-Broke-AutoLinks')     || '0');
+      const d = parseInt(xhr.getResponseHeader('X-Cleared-ImageLines')  || '0');
+      const total = a + b + c + d;
+
+      log(`Pass 1 (annotations) : ${a} removed`, a > 0 ? 'ok' : 'dim');
+      log(`Pass 2 (fitz)        : ${b} removed`, b > 0 ? 'ok' : 'dim');
+      log(`Pass 3 (auto-detect) : ${c} broken`,  c > 0 ? 'ok' : 'dim');
+      log(`Pass 4 (image OCR)   : ${d} painted`, d > 0 ? 'ok' : 'dim');
+      log(`Total: ${total} item(s) removed/broken.`, total > 0 ? 'ok' : 'warn');
+
+      // Create download URL from response blob
+      const blob = new Blob([xhr.response], {type:'application/pdf'});
+      _dlUrl  = URL.createObjectURL(blob);
+      _dlName = _file.name.replace(/\.pdf$/i, '_no_links.pdf');
+
+      showResult(true,
+        `Done — ${total} link item(s) removed`,
+        [
+          [a, 'Annotation links'],
+          [b, 'Extra links'],
+          [c, 'Auto-detected URLs'],
+          [d, 'Image URL lines'],
+        ]
+      );
+      // Auto-trigger download
+      triggerDownload();
+
+    } else {
+      hideProg();
+      let msg = 'Processing failed.';
+      try { msg = JSON.parse(xhr.responseText).error || msg; } catch {}
+      log(`Error: ${msg}`, 'err');
+      showResult(false, msg, null);
+    }
+  };
+
+  xhr.onerror = () => {
+    runBtn.disabled = false; runBtn.textContent = 'Remove Links';
+    hideProg();
+    log('Network error — could not reach server.', 'err');
+    showResult(false, 'Network error.', null);
+  };
+
+  xhr.open('POST', '/process');
+  xhr.responseType = 'arraybuffer';
+  setProg(0, 'Starting…');
+  xhr.send(fd);
+
+  // Simulate processing progress (50→95%) while waiting for server response
+  let pct = 50;
+  const tick = setInterval(() => {
+    if (pct < 90) { pct += 2; setProg(pct, 'Processing on server…'); }
+    else clearInterval(tick);
+  }, 400);
+  xhr.onload = ((original) => function() {
+    clearInterval(tick);
+    original.call(this);
+  })(xhr.onload);
+}
+</script>
+</body>
+</html>
