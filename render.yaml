@@ -1,8 +1,11 @@
 services:
   - type: web
     name: pdf-link-remover
-    runtime: docker
-    dockerfilePath: ./Dockerfile
+    runtime: python
+    buildCommand: "./build.sh"
+    startCommand: "gunicorn app:app --timeout 120 --workers 2"
     envVars:
+      - key: PYTHON_VERSION
+        value: "3.11.0"
       - key: TESSDATA_PREFIX
         value: /usr/share/tesseract-ocr/5/tessdata
